@@ -548,24 +548,26 @@
       } else {
         containerOffset = $(this.container).offset();
       }
-
+	
+      var pickerWidth =  this.picker.outerWidth()
       if (this.component) {
         offset = this.component.offset();
         left = offset.left;
         if (this.pickerPosition == 'bottom-left' || this.pickerPosition == 'top-left') {
-          left += this.component.outerWidth() - this.picker.outerWidth();
+          left += this.component.outerWidth() - pickerWidth;
         }
       } else {
         offset = this.element.offset();
         left = offset.left;
         if (this.pickerPosition == 'bottom-left' || this.pickerPosition == 'top-left') {
-          left += this.element.outerWidth() - this.picker.outerWidth();
+          left += this.element.outerWidth() - pickerWidth;
         }
       }
 
       var bodyWidth = document.body.clientWidth || window.innerWidth;
-      if (left + 220 > bodyWidth) {
-        left = bodyWidth - 220;
+
+      if (left + pickerWidth > bodyWidth) {
+        left = bodyWidth - pickerWidth;
       }
 
       if (this.pickerPosition == 'top-left' || this.pickerPosition == 'top-right') {
