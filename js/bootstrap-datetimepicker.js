@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
  * bootstrap-datetimepicker.js
  * =========================================================
  * Copyright 2012 Stefan Petre
@@ -491,6 +491,16 @@
         .find('th:eq(1)')
         .text(this.title === false ? value : this.title);
     },
+    setNext:function(selector,value){
+       return this.picker.find(selector)
+        .find('th:eq(2) > .text')
+        .text(value);
+    },
+    setPrev:function(selector,value){
+       return this.picker.find(selector)
+        .find('th:eq(0) > .text')
+        .text(value);
+    },
 
     setDaysOfWeekDisabled: function (daysOfWeekDisabled) {
       this.daysOfWeekDisabled = daysOfWeekDisabled || [];
@@ -631,7 +641,7 @@
       var html = '',
         i = 0;
       while (i < 12) {
-        html += '<span class="month">' + dates[this.language].monthsShort[i++] + '</span>';
+        html += '<span class="month">' + dates[this.language].months[i++] + '</span>';
       }
       this.picker.find('.datetimepicker-months td').html(html);
     },
@@ -652,7 +662,11 @@
         endMonth = this.endDate !== Infinity ? this.endDate.getUTCMonth() + 1 : Infinity,
         currentDate = (new UTCDate(this.date.getUTCFullYear(), this.date.getUTCMonth(), this.date.getUTCDate())).valueOf(),
         today = new Date();
-      this.setTitle('.datetimepicker-days', dates[this.language].months[month] + ' ' + year)
+      
+
+      this.setTitle('.datetimepicker-days', dates[this.language].months[month] + (today.getUTCFullYear()==year ? '':' ' + year));
+      this.setPrev('.datetimepicker-days', dates[this.language].monthsShort[(month+11)%12]);
+      this.setNext('.datetimepicker-days', dates[this.language].monthsShort[(month+1)%12]);
       if (this.formatViewType == 'time') {
         var formatted = this.getFormattedDate();
         this.setTitle('.datetimepicker-hours', formatted);
@@ -726,8 +740,9 @@
         } else if (hours == i) {
           clsName += ' active';
         }
+        meridian = (i < 12 ? dates[this.language].meridiem[0] : dates[this.language].meridiem[1]);
         if (this.showMeridian && dates[this.language].meridiem.length == 2) {
-          meridian = (i < 12 ? dates[this.language].meridiem[0] : dates[this.language].meridiem[1]);
+          
           if (meridian != meridianOld) {
             if (meridianOld != '') {
               html.push('</fieldset>');
@@ -741,7 +756,7 @@
             html.push('</fieldset>');
           }
         } else {
-          txt = i + ':00';
+          txt = (i % 12 ? i % 12 : 12) + meridian;
           html.push('<span class="hour' + clsName + '">' + txt + '</span>');
         }
       }
@@ -1786,7 +1801,7 @@
                     '<tr><th colspan="7" class="clear"></th></tr>' +
                   '</tfoot>'
   };
-  DPGlobal.template = '<div class="datetimepicker">' +
+  DPGlobal.template =  DPGlobal.templateV3 ='<div class="datetimepicker">' +
     '<div class="datetimepicker-minutes">' +
     '<table class=" table-condensed">' +
     DPGlobal.headTemplate +
