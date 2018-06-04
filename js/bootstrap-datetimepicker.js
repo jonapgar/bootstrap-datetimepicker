@@ -757,7 +757,7 @@
           }
         } else {
           txt = (i % 12 ? i % 12 : 12) + meridian;
-          html.push('<span class="hour' + clsName + '">' + txt + '</span>');
+          html.push('<span class="hour' + clsName + ' hour_' + (i < 12 ? 'am' : 'pm') + '">' + txt + '</span>');
         }
       }
       this.picker.find('.datetimepicker-hours td').html(html.join(''));
