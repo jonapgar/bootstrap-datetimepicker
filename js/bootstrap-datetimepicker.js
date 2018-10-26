@@ -597,6 +597,21 @@
     },
 
     update: function () {
+
+      if (this.updateok){
+        this.updateok=false
+      } else {
+
+        clearTimeout(this.updating)
+        var _self = this
+        var args = arguments
+        _self.updating = setTimeout(function(){
+          _self.updateok=true
+          _self.update.apply(_self,args)
+        },500)
+        return
+      }
+	    
       var date, fromArgs = false;
       if (arguments && arguments.length && (typeof arguments[0] === 'string' || arguments[0] instanceof Date)) {
         date = arguments[0];
