@@ -595,7 +595,9 @@
         zIndex: this.zIndex
       });
     },
-
+    setOtherDate:function(otherdate){
+      this.otherDate =otherdate;
+    },
     update: function () {
 
       if (this.updateok){
@@ -728,6 +730,22 @@
         }
         if (prevMonth.valueOf() == currentDate) {
           clsName += ' active';
+        }
+        
+        if(this.otherDate && 
+          this.otherDate.valueOf() < currentDate &&
+          prevMonth.valueOf() < currentDate &&
+          prevMonth.valueOf() >= this.otherDate.valueOf()
+        ){
+            clsName +=' highlight'
+        }
+
+        if(this.otherDate && 
+          this.otherDate.valueOf() > currentDate &&
+          prevMonth.valueOf() > currentDate &&
+          prevMonth.valueOf() <= this.otherDate.valueOf()
+          ){
+            clsName +=' highlight'
         }
         if ((prevMonth.valueOf() + 86400000) <= this.startDate || prevMonth.valueOf() > this.endDate ||
           $.inArray(prevMonth.getUTCDay(), this.daysOfWeekDisabled) !== -1 ||
