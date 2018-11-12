@@ -208,8 +208,10 @@
     this.picker = $(template)
       .appendTo(this.isInline ? this.element : this.container) // 'body')
       .on({
-        click:     $.proxy(this.click, this),
-        mousedown: $.proxy(this.mousedown, this)
+       
+        mousedown: $.proxy(this.mousedown, this),
+        'mouseover td.day': $.proxy(this.checkDateRange, this),
+        'click':     $.proxy(this.click, this)
       });
 
     if (this.wheelViewModeNavigation) {
@@ -332,12 +334,27 @@
       }
       this._events = [];
     },
-
+    readyPicker:function(options){
+      this.zIndex = options.zIndex;
+      this.picker.css({display:'none'})
+      this.place()
+    },
+    showPicker:function(){
+      this.picker.css({display:'block'})
+      this.isVisible = true
+      this.height = this.component ? this.component.outerHeight() : this.element.outerHeight();
+      this.place();
+    },
+    getZindex:function(){
+      return this.zIndex;
+    },
     show: function (e) {
-      this.picker.show();
+      var self= this;
+      
       this.height = this.component ? this.component.outerHeight() : this.element.outerHeight();
       if (this.forceParse) {
         this.update();
+        self.picker.show();
       }
       this.place();
       $(window).on('resize', $.proxy(this.place, this));
@@ -355,7 +372,10 @@
     hide: function (e) {
       if (!this.isVisible) return;
       if (this.isInline) return;
+
+
       this.picker.hide();
+      this.clearPicker();
       $(window).off('resize', this.place);
       this.viewMode = this.startViewMode;
       this.showMode();
@@ -558,7 +578,7 @@
       } else {
         containerOffset = $(this.container).offset();
       }
-	
+  
       var pickerWidth =  this.picker.outerWidth()
       if (this.component) {
         offset = this.component.offset();
@@ -581,9 +601,9 @@
       }
 
       if (this.pickerPosition == 'top-left' || this.pickerPosition == 'top-right') {
-        top = offset.top - this.picker.outerHeight();
+        top = offset.top - this.picker.outerHeight() ;
       } else {
-        top = offset.top + this.height;
+        top = offset.top + this.height + 10;
       }
 
       top = top - containerOffset.top;
@@ -595,23 +615,31 @@
         zIndex: this.zIndex
       });
     },
-
-    update: function () {
+    setOtherDate:function(otherdate){
+      this.otherDate =otherdate;
+    },
+    update: function (cb) {
+        
 
       if (this.updateok){
         this.updateok=false
+        this.trailing=false
       } else {
-
-        clearTimeout(this.updating)
+        if (this.updating) {
+          this.trailing=true
+        } 
         var _self = this
         var args = arguments
+
         _self.updating = setTimeout(function(){
           _self.updateok=true
-          _self.update.apply(_self,args)
+          delete _self.updating
+          if (_self.trailing)
+            _self.update.apply(_self,args)
         },500)
-        return
+        
       }
-	    
+      
       var date, fromArgs = false;
       if (arguments && arguments.length && (typeof arguments[0] === 'string' || arguments[0] instanceof Date)) {
         date = arguments[0];
@@ -640,6 +668,7 @@
         this.viewDate = new Date(this.date);
       }
       this.fill();
+
     },
 
     fillDow: function () {
@@ -661,7 +690,8 @@
       this.picker.find('.datetimepicker-months td').html(html);
     },
 
-    fill: function () {
+    fill: function (options) {
+      
       if (this.date == null || this.viewDate == null) {
         return;
       }
@@ -678,7 +708,7 @@
         currentDate = (new UTCDate(this.date.getUTCFullYear(), this.date.getUTCMonth(), this.date.getUTCDate())).valueOf(),
         today = new Date();
       
-
+      // currentDate = options && options.mouseOverDate || currentDate
       this.setTitle('.datetimepicker-days', dates[this.language].months[month] + (today.getUTCFullYear()==year ? '':' ' + year));
       this.setPrev('.datetimepicker-days', dates[this.language].monthsShort[(month+11)%12]);
       this.setNext('.datetimepicker-days', dates[this.language].monthsShort[(month+1)%12]);
@@ -708,12 +738,14 @@
       nextMonth.setUTCDate(nextMonth.getUTCDate() + 42);
       nextMonth = nextMonth.valueOf();
       var html = [];
-      var clsName;
+      var clsName,
+          pointerClsName;
       while (prevMonth.valueOf() < nextMonth) {
         if (prevMonth.getUTCDay() == this.weekStart) {
           html.push('<tr>');
         }
         clsName = '';
+        pointerClsName = '';
         if (prevMonth.getUTCFullYear() < year || (prevMonth.getUTCFullYear() == year && prevMonth.getUTCMonth() < month)) {
           clsName += ' old';
         } else if (prevMonth.getUTCFullYear() > year || (prevMonth.getUTCFullYear() == year && prevMonth.getUTCMonth() > month)) {
@@ -728,13 +760,44 @@
         }
         if (prevMonth.valueOf() == currentDate) {
           clsName += ' active';
+
+          if(this.otherDate && this.otherDate.valueOf() > currentDate)
+            pointerClsName += ' start'
+          else
+            pointerClsName += ' end'
         }
+        
+        if(this.otherDate && 
+          this.otherDate.valueOf() < currentDate &&
+          prevMonth.valueOf() < currentDate &&
+          prevMonth.valueOf() >= this.otherDate.valueOf()
+        ){
+            clsName +=' highlight'
+            
+            var prevMonthUTCtoDate = new Date(prevMonth.getTime() + (prevMonth.getTimezoneOffset()*60000))
+            if(prevMonthUTCtoDate.valueOf() == this.otherDate.valueOf() + 86400000)
+              pointerClsName = 'start'
+        }
+
+        if(this.otherDate && 
+          this.otherDate.valueOf() > currentDate &&
+          prevMonth.valueOf() > currentDate &&
+          prevMonth.valueOf() <= this.otherDate.valueOf()
+          ){
+            clsName +=' highlight'
+
+
+         var prevMonthUTCtoDate = new Date(prevMonth.getTime() + (prevMonth.getTimezoneOffset()*60000))
+          if(prevMonthUTCtoDate.valueOf() == this.otherDate.valueOf())
+            pointerClsName = 'end'
+        }
+
         if ((prevMonth.valueOf() + 86400000) <= this.startDate || prevMonth.valueOf() > this.endDate ||
           $.inArray(prevMonth.getUTCDay(), this.daysOfWeekDisabled) !== -1 ||
-					$.inArray(prevMonth.toDateString(), this.datesDisabled) !== -1) {
+          $.inArray(prevMonth.toDateString(), this.datesDisabled) !== -1) {
           clsName += ' disabled';
         }
-        html.push('<td class="day' + clsName + '">' + prevMonth.getUTCDate() + '</td>');
+        html.push('<td class="day' + clsName + '" data-value="'+ prevMonth.valueOf() +'"" ><span class="pointer ' + pointerClsName + '"></span>' + prevMonth.getUTCDate() + '</td>');
         if (prevMonth.getUTCDay() == this.weekEnd) {
           html.push('</tr>');
         }
@@ -844,6 +907,7 @@
       }
       yearCont.html(html);
       this.place();
+
     },
 
     updateNavArrows: function () {
@@ -947,7 +1011,98 @@
       }, this), this.wheelViewModeNavigationDelay);
 
     },
+    clearPicker:function(){
+      _.each(this.picker.find('.datetimepicker-days td'),function(day){
+        $(day).removeClass('highlight active')
+      })
+    },
+    checkDateRange:function(e){
+      e.stopPropagation();
+      e.preventDefault();
+      
+      if(!this.otherDate)
+        return
 
+      var $target = $(e.target)
+      
+      if ($target.is('.day') && !$target.is('.disabled')) {
+        var self = this;
+        var html = [];
+        var clsName,pointerClsName;
+        var d = new Date(this.viewDate),
+          year = d.getUTCFullYear(),
+          month = d.getUTCMonth(),
+          dayMonth = d.getUTCDate(),
+          today = new Date();
+       
+        var mouseOverUTCDate = new Date(parseInt($target.data('value')))
+        var mouseOverDate = new Date(mouseOverUTCDate.getTime() + (mouseOverUTCDate.getTimezoneOffset()*60000))
+        var days = this.picker.find('.datetimepicker-days td')
+
+        _.each(days,function(day){
+          $day = $(day)
+          $day.removeClass()
+          $day.find('span').removeClass()
+          dayUTCDate = new Date(parseInt($day.data('value')))
+          dayDate = new Date(dayUTCDate.getTime() + (dayUTCDate.getTimezoneOffset()*60000))
+          
+          
+          currentdayDate = new Date(self.date.getTime() + (self.date.getTimezoneOffset()*60000))
+          pointerClsName = 'pointer'
+          clsName = 'day ';
+          if (dayDate.getUTCFullYear() < year || (dayDate.getUTCFullYear() == year && dayDate.getUTCMonth() < month)) {
+            clsName += ' old';
+          } else if (dayDate.getUTCFullYear() > year || (dayDate.getUTCFullYear() == year && dayDate.getUTCMonth() > month)) {
+            clsName += ' new';
+          }
+
+          if(dayDate.getUTCFullYear() == today.getFullYear() &&
+            dayDate.getUTCMonth() == today.getMonth() &&
+            dayDate.getUTCDate() == today.getDate()) {
+            clsName += ' today';
+          }
+
+          if (dayDate.valueOf() == mouseOverDate.valueOf()) {
+            clsName += ' active';
+            if(mouseOverDate.valueOf() < self.otherDate.valueOf())
+              pointerClsName += ' start'
+            else
+              pointerClsName += ' end'
+          }
+         
+          if(self.otherDate && 
+            self.otherDate.valueOf() < mouseOverDate.valueOf() &&
+            dayDate.valueOf() < mouseOverDate.valueOf() &&
+            dayDate.valueOf() >= self.otherDate.valueOf()
+          ){
+              
+              if(currentdayDate.valueOf() > self.otherDate.valueOf())
+                clsName +=' highlight'
+
+              if(currentdayDate.valueOf() >  dayDate.valueOf())
+                clsName +=' highlight'
+
+              if(currentdayDate.valueOf() == self.otherDate.valueOf())
+                pointerClsName += ' start'
+          }
+
+          if(self.otherDate && 
+            self.otherDate.valueOf() > mouseOverDate.valueOf() &&
+            dayDate.valueOf() > mouseOverDate.valueOf() &&
+            dayDate.valueOf() <= self.otherDate.valueOf() 
+          ){
+              
+             clsName +=' highlight'
+              
+              if(dayDate.valueOf() == self.otherDate.valueOf())
+                pointerClsName += ' end'
+          }
+          $day.addClass(clsName)
+
+          $day.find('span').addClass(pointerClsName)
+        })
+      }
+    },
     click: function (e) {
       e.stopPropagation();
       e.preventDefault();
